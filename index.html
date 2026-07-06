@@ -19,7 +19,7 @@
         Screenshot laden
         <input id="imageInput" type="file" accept="image/*" />
       </label>
-      <div class="tip">Am besten Screenshot der ganzen App laden, dann den Erkennungsbereich nur um das Spielfeld ziehen. Menüs/Buttons werden dann ignoriert.</div>
+      <div class="tip">Screenshot hochladen → Grid wird automatisch neu aufgebaut. Zahlen und doppelte Brücken werden aus dem Bild gelesen.</div>
     </section>
 
     <section class="panel boardPanel">
@@ -32,7 +32,7 @@
         <button id="addIslandBtn">+ Insel</button>
         <button id="nextMoveBtn" class="primary">Next Move</button>
       </div>
-      <p class="hint">Bereich wählen: Rechteck um das echte Spielfeld ziehen. Normal: Insel antippen. Zwei Inseln nacheinander: Brücke umschalten. Lange drücken/Rechtsklick: Insel löschen.</p>
+      <p class="hint">Normal: Insel antippen. Zwei Inseln nacheinander: Brücke umschalten. Lange drücken/Rechtsklick: Insel löschen.</p>
     </section>
 
     <section class="panel side">
@@ -40,18 +40,15 @@
         <summary>Auswahl</summary>
         <div id="selectionBox" class="muted block">Keine Insel ausgewählt.</div>
       </details>
-
       <details open>
         <summary>Next Move</summary>
         <div id="moveBox" class="move muted">Noch kein Move berechnet.</div>
         <button id="applyMoveBtn" disabled>Move anwenden</button>
       </details>
-
       <details open>
         <summary>Inseln bearbeiten</summary>
         <div id="islandList" class="list"></div>
       </details>
-
       <details>
         <summary>Validierung</summary>
         <div id="validationBox" class="validation"></div>
@@ -68,5 +65,6 @@
   </nav>
 
   <script src="app.js"></script>
+  <script src="patch.js"></script>
 </body>
 </html>
