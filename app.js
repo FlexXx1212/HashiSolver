@@ -13,6 +13,7 @@ const selectionBox = document.getElementById('selectionBox');
 const moveBox = document.getElementById('moveBox');
 const validationBox = document.getElementById('validationBox');
 
+const FIXED_CROP = { refW: 709, refH: 1536, left: 44, top: 390, right: 44, bottom: 330 };
 const state = { image:null, islands:[], bridges:[], selectedId:null, nextId:1, pendingMove:null, addMode:false, cropMode:false, crop:null, drag:null, longPressTimer:null };
 
 function setStatus(text){ statusEl.textContent = text; }
@@ -38,97 +39,37 @@ function loadImage(file){
     canvas.width = Math.round(img.width * scale);
     canvas.height = Math.round(img.height * scale);
     state.image = img;
-    state.islands = []; state.bridges = []; state.selectedId = null; state.nextId = 1; state.pendingMove = null;
-    drawBaseImage();
-    state.crop = autoDetectPuzzleCrop() ?? guessCrop(canvas.width, canvas.height);
-    draw(); render(); setStatus('Screenshot geladen. Spielfeldbereich automatisch erkannt.');
+    state.islands = [];
+    state.bridges = [];
+    state.selectedId = null;
+    state.nextId = 1;
+    state.pendingMove = null;
+    state.crop = fixedPuzzleCrop(canvas.width, canvas.height);
+    draw();
+    render();
+    setStatus('Screenshot geladen. Fixer Spielfeld-Crop aktiv.');
   };
   img.src = URL.createObjectURL(file);
 }
 
-function guessCrop(w,h){ return { x:Math.round(w*0.07), y:Math.round(h*0.30), w:Math.round(w*0.86), h:Math.round(h*0.52) }; }
-
-function autoDetectPuzzleCrop(){
-  const w = canvas.width, h = canvas.height;
-  const img = ctx.getImageData(0,0,w,h);
-  const d = img.data;
-  const row = new Array(h).fill(0);
-  const col = new Array(w).fill(0);
-  const yMin = Math.round(h * 0.20);
-  const yMax = Math.round(h * 0.86);
-  const xMin = Math.round(w * 0.04);
-  const xMax = Math.round(w * 0.96);
-
-  for(let y=yMin; y<yMax; y++){
-    for(let x=xMin; x<xMax; x++){
-      const i=(y*w+x)*4;
-      const r=d[i], g=d[i+1], b=d[i+2];
-      const avg=(r+g+b)/3;
-      const diff=Math.max(r,g,b)-Math.min(r,g,b);
-      // Hashi-board: dark gray grid lines plus white circles/bridges. Header text is mostly outside yMin.
-      const gridPixel = avg>34 && avg<120 && diff<38;
-      const brightPuzzlePixel = avg>145 && diff<90;
-      if(gridPixel || brightPuzzlePixel){ row[y]++; col[x]++; }
-    }
-  }
-
-  const rowSmooth = smooth(row, 13);
-  const colSmooth = smooth(col, 13);
-  const rowThr = Math.max(18, w * 0.045);
-  const colThr = Math.max(12, h * 0.025);
-
-  const yr = bestBand(rowSmooth, yMin, yMax, rowThr, Math.round(h*0.16));
-  const xr = bestBand(colSmooth, xMin, xMax, colThr, Math.round(w*0.18));
-  if(!yr || !xr) return null;
-
-  // Tighten to actual puzzle artifacts inside the detected band.
-  const pad = Math.round(Math.min(w,h)*0.035);
-  return {
-    x: clamp(xr.start - pad, 0, w-1),
-    y: clamp(yr.start - pad, 0, h-1),
-    w: clamp((xr.end - xr.start) + pad*2, 40, w - Math.max(0, xr.start - pad)),
-    h: clamp((yr.end - yr.start) + pad*2, 40, h - Math.max(0, yr.start - pad)),
-  };
+function fixedPuzzleCrop(w,h){
+  const l = Math.round(FIXED_CROP.left * w / FIXED_CROP.refW);
+  const t = Math.round(FIXED_CROP.top * h / FIXED_CROP.refH);
+  const r = Math.round(FIXED_CROP.right * w / FIXED_CROP.refW);
+  const b = Math.round(FIXED_CROP.bottom * h / FIXED_CROP.refH);
+  return { x:l, y:t, w:Math.max(40, w-l-r), h:Math.max(40, h-t-b) };
 }
 
-function smooth(arr, radius){
-  const out = new Array(arr.length).fill(0);
-  let sum = 0;
-  for(let i=0;i<arr.length;i++){
-    sum += arr[i];
-    if(i-radius-1>=0) sum -= arr[i-radius-1];
-    if(i>=radius) out[i-radius] = sum / Math.min(radius+1, i+1);
-  }
-  return out;
-}
-
-function bestBand(values, min, max, threshold, minLen){
-  let best=null, start=null;
-  for(let i=min;i<=max;i++){
-    const on = values[i] >= threshold;
-    if(on && start===null) start=i;
-    if((!on || i===max) && start!==null){
-      const end = on && i===max ? i : i-1;
-      if(end-start >= minLen){
-        const score = values.slice(start,end+1).reduce((a,b)=>a+b,0);
-        if(!best || score>best.score) best={start,end,score};
-      }
-      start=null;
-    }
-  }
-  return best;
-}
-
-cropBtn.addEventListener('click', () => { state.cropMode=!state.cropMode; cropBtn.textContent=state.cropMode?'Bereich aktiv':'Bereich wählen'; setStatus(state.cropMode?'Rechteck um das Spielfeld ziehen':'Bereit'); draw(); });
+cropBtn.addEventListener('click', () => { state.cropMode=!state.cropMode; cropBtn.textContent=state.cropMode?'Bereich aktiv':'Bereich wählen'; setStatus(state.cropMode?'Fallback: Rechteck manuell ziehen':'Fixer Crop aktiv'); draw(); });
 detectBtn.addEventListener('click', () => { if(!state.image) return setStatus('Erst Screenshot laden'); detectIslands(); draw(); render(); });
 addIslandBtn.addEventListener('click', () => { state.addMode=!state.addMode; addIslandBtn.textContent=state.addMode?'Tippen...':'+ Insel'; setStatus(state.addMode?'Auf das Board tippen, um Insel einzufügen':'Bereit'); });
 nextMoveBtn.addEventListener('click', () => { const move=findNextMove(); state.pendingMove=move; applyMoveBtn.disabled=!move; renderMove(move); draw(); });
 applyMoveBtn.addEventListener('click', () => { if(!state.pendingMove) return; applyBridge(state.pendingMove.a,state.pendingMove.b,state.pendingMove.targetCount); state.pendingMove=null; applyMoveBtn.disabled=true; moveBox.textContent='Move angewendet.'; draw(); render(); });
-clearBtn.addEventListener('click', () => { state.islands=[]; state.bridges=[]; state.selectedId=null; state.nextId=1; state.pendingMove=null; draw(); render(); setStatus('Zurückgesetzt'); });
+clearBtn.addEventListener('click', () => { state.islands=[]; state.bridges=[]; state.selectedId=null; state.nextId=1; state.pendingMove=null; state.crop = state.image ? fixedPuzzleCrop(canvas.width, canvas.height) : null; draw(); render(); setStatus('Zurückgesetzt'); });
 
 canvas.addEventListener('pointerdown', e => { const p=eventPoint(e); if(state.cropMode){ state.drag={start:p,current:p}; return; } state.longPressTimer=setTimeout(()=>{ const hit=hitIsland(p.x,p.y); if(hit) removeIsland(hit.id); },650); });
 canvas.addEventListener('pointermove', e => { if(state.cropMode && state.drag){ state.drag.current=eventPoint(e); draw(); } });
-canvas.addEventListener('pointerup', e => { clearTimeout(state.longPressTimer); const p=eventPoint(e); if(state.cropMode && state.drag){ const a=state.drag.start,b=state.drag.current; const x=Math.min(a.x,b.x),y=Math.min(a.y,b.y),ww=Math.abs(a.x-b.x),hh=Math.abs(a.y-b.y); if(ww>40&&hh>40) state.crop={x:Math.round(x),y:Math.round(y),w:Math.round(ww),h:Math.round(hh)}; state.drag=null; draw(); setStatus('Erkennungsbereich gesetzt'); return; } handleTap(p,e); });
+canvas.addEventListener('pointerup', e => { clearTimeout(state.longPressTimer); const p=eventPoint(e); if(state.cropMode && state.drag){ const a=state.drag.start,b=state.drag.current; const x=Math.min(a.x,b.x),y=Math.min(a.y,b.y),ww=Math.abs(a.x-b.x),hh=Math.abs(a.y-b.y); if(ww>40&&hh>40) state.crop={x:Math.round(x),y:Math.round(y),w:Math.round(ww),h:Math.round(hh)}; state.drag=null; draw(); setStatus('Manueller Bereich gesetzt'); return; } handleTap(p,e); });
 canvas.addEventListener('contextmenu', e => { e.preventDefault(); const p=eventPoint(e); const hit=hitIsland(p.x,p.y); if(hit) removeIsland(hit.id); });
 
 function eventPoint(e){ const r=canvas.getBoundingClientRect(); return { x:(e.clientX-r.left)*canvas.width/r.width, y:(e.clientY-r.top)*canvas.height/r.height }; }
@@ -147,27 +88,36 @@ function applyBridge(a,b,count){ state.bridges=state.bridges.filter(br=>keyFor(b
 function detectIslands(){
   drawBaseImage();
   const img=ctx.getImageData(0,0,canvas.width,canvas.height);
-  const crop=state.crop ?? {x:0,y:0,w:canvas.width,h:canvas.height};
-  const minR=Math.max(10,Math.round(Math.min(crop.w,crop.h)*0.025));
-  const maxR=Math.min(34,Math.round(Math.min(crop.w,crop.h)*0.062));
+  const crop=state.crop ?? fixedPuzzleCrop(canvas.width, canvas.height);
+  const minR=Math.max(9,Math.round(Math.min(crop.w,crop.h)*0.021));
+  const maxR=Math.min(35,Math.round(Math.min(crop.w,crop.h)*0.060));
   const candidates=[];
   const step=3;
   for(let y=crop.y+maxR;y<crop.y+crop.h-maxR;y+=step){
     for(let x=crop.x+maxR;x<crop.x+crop.w-maxR;x+=step){
       let best=null;
       for(let r=minR;r<=maxR;r+=2){ const s=circleScore(img,x,y,r); if(!best || s.score>best.score) best={x,y,r,...s}; }
-      if(best && best.score>0.53 && best.inner>0.025) candidates.push(best);
+      if(best && best.score>0.48 && best.inner>0.018) candidates.push(best);
     }
   }
   candidates.sort((a,b)=>b.score-a.score);
   const picked=[];
-  for(const c of candidates){ if(picked.some(p=>Math.hypot(p.x-c.x,p.y-c.y)<Math.max(p.r,c.r)*1.35)) continue; picked.push(c); }
+  for(const c of candidates){
+    if(picked.some(p=>Math.hypot(p.x-c.x,p.y-c.y)<Math.max(p.r,c.r)*1.28)) continue;
+    picked.push(c);
+  }
   state.islands=picked.sort((a,b)=>a.y-b.y||a.x-b.x).map(c=>({id:state.nextId++,x:Math.round(c.x),y:Math.round(c.y),value:1}));
   state.bridges=[]; state.selectedId=null; state.pendingMove=null;
-  setStatus(`${state.islands.length} Inseln im Auto-Bereich erkannt. Zahlen bitte korrigieren.`);
+  setStatus(`${state.islands.length} Inseln im festen Crop erkannt. Zahlen bitte korrigieren.`);
 }
-function isBright(data,w,x,y){ x=Math.round(x); y=Math.round(y); if(x<0||y<0||x>=canvas.width||y>=canvas.height) return false; const i=(y*w+x)*4; const r=data[i],g=data[i+1],b=data[i+2]; const avg=(r+g+b)/3,diff=Math.max(r,g,b)-Math.min(r,g,b); return avg>145 && diff<90; }
-function circleScore(img,x,y,r){ const data=img.data,w=img.width; let ring=0,total=0,inner=0,innerTotal=0; for(let a=0;a<Math.PI*2;a+=Math.PI/24){ for(const rr of [r-1,r,r+1]){ total++; if(isBright(data,w,x+Math.cos(a)*rr,y+Math.sin(a)*rr)) ring++; } } for(let yy=-r*.48;yy<=r*.48;yy+=3){ for(let xx=-r*.48;xx<=r*.48;xx+=3){ innerTotal++; if(isBright(data,w,x+xx,y+yy)) inner++; } } return {score:ring/total, inner:inner/innerTotal}; }
+function isBright(data,w,x,y){ x=Math.round(x); y=Math.round(y); if(x<0||y<0||x>=canvas.width||y>=canvas.height) return false; const i=(y*w+x)*4; const r=data[i],g=data[i+1],b=data[i+2]; const avg=(r+g+b)/3,diff=Math.max(r,g,b)-Math.min(r,g,b); return avg>142 && diff<95; }
+function circleScore(img,x,y,r){
+  const data=img.data,w=img.width;
+  let ring=0,total=0,inner=0,innerTotal=0;
+  for(let a=0;a<Math.PI*2;a+=Math.PI/28){ for(const rr of [r-1,r,r+1]){ total++; if(isBright(data,w,x+Math.cos(a)*rr,y+Math.sin(a)*rr)) ring++; } }
+  for(let yy=-r*.50;yy<=r*.50;yy+=3){ for(let xx=-r*.50;xx<=r*.50;xx+=3){ innerTotal++; if(isBright(data,w,x+xx,y+yy)) inner++; } }
+  return {score:ring/total, inner:inner/innerTotal};
+}
 
 function drawBaseImage(){ ctx.clearRect(0,0,canvas.width,canvas.height); if(state.image) ctx.drawImage(state.image,0,0,canvas.width,canvas.height); else { ctx.fillStyle='#070b10'; ctx.fillRect(0,0,canvas.width,canvas.height); } }
 function draw(){ drawBaseImage(); drawCrop(); drawBridges(); if(state.pendingMove) drawSuggestedMove(state.pendingMove); drawIslands(); }
