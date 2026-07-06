@@ -2,55 +2,70 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Hashi Solver</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="app">
     <header class="hero">
-      <div>
-        <h1>Hashi Solver</h1>
-        <p>Screenshot laden, Inseln korrigieren, Brücken setzen und den nächsten logischen Zug anzeigen lassen. Kein Raten, kein Brute Force.</p>
-      </div>
+      <h1>Hashi Solver</h1>
+      <p>Mobile-first Hashi-Helfer. Screenshot laden, Bereich aufs Spielfeld ziehen, Inseln prüfen, logisch lösen.</p>
       <div class="status" id="status">Bereit</div>
     </header>
 
-    <section class="panel controls">
-      <label class="file">
+    <section class="panel uploadPanel">
+      <label class="file primaryFile">
         Screenshot laden
         <input id="imageInput" type="file" accept="image/*" />
       </label>
-      <button id="detectBtn">Inseln erkennen</button>
-      <button id="addIslandBtn">Insel hinzufügen</button>
-      <button id="nextMoveBtn" class="primary">Next Move</button>
-      <button id="applyMoveBtn" disabled>Move anwenden</button>
-      <button id="clearBtn" class="danger">Reset</button>
+      <div class="tip">Am besten Screenshot der ganzen App laden, dann den Erkennungsbereich nur um das Spielfeld ziehen. Menüs/Buttons werden dann ignoriert.</div>
     </section>
 
-    <section class="layout">
-      <section class="panel boardPanel">
-        <div class="canvasWrap">
-          <canvas id="board" width="900" height="900"></canvas>
-        </div>
-        <p class="hint">Links-Klick auf Insel: auswählen. Zwei Inseln nacheinander klicken: Brücke +1 bis max. 2. Shift+Klick auf leere Stelle: Insel hinzufügen. Rechts-Klick auf Insel: löschen.</p>
-      </section>
+    <section class="panel boardPanel">
+      <div class="canvasWrap">
+        <canvas id="board" width="900" height="900"></canvas>
+      </div>
+      <div class="quickActions">
+        <button id="cropBtn">Bereich wählen</button>
+        <button id="detectBtn">Inseln erkennen</button>
+        <button id="addIslandBtn">+ Insel</button>
+        <button id="nextMoveBtn" class="primary">Next Move</button>
+      </div>
+      <p class="hint">Bereich wählen: Rechteck um das echte Spielfeld ziehen. Normal: Insel antippen. Zwei Inseln nacheinander: Brücke umschalten. Lange drücken/Rechtsklick: Insel löschen.</p>
+    </section>
 
-      <aside class="panel side">
-        <h2>Auswahl</h2>
-        <div id="selectionBox" class="muted">Keine Insel ausgewählt.</div>
+    <section class="panel side">
+      <details open>
+        <summary>Auswahl</summary>
+        <div id="selectionBox" class="muted block">Keine Insel ausgewählt.</div>
+      </details>
 
-        <h2>Inseln</h2>
-        <div id="islandList" class="list"></div>
-
-        <h2>Next Move</h2>
+      <details open>
+        <summary>Next Move</summary>
         <div id="moveBox" class="move muted">Noch kein Move berechnet.</div>
+        <button id="applyMoveBtn" disabled>Move anwenden</button>
+      </details>
 
-        <h2>Validierung</h2>
+      <details open>
+        <summary>Inseln bearbeiten</summary>
+        <div id="islandList" class="list"></div>
+      </details>
+
+      <details>
+        <summary>Validierung</summary>
         <div id="validationBox" class="validation"></div>
-      </aside>
+      </details>
     </section>
   </main>
+
+  <nav class="bottomNav">
+    <button id="navUpload">Laden</button>
+    <button id="navDetect">Erkennen</button>
+    <button id="navAdd">+ Insel</button>
+    <button id="navNext">Next</button>
+    <button id="clearBtn" class="danger">Reset</button>
+  </nav>
 
   <script src="app.js"></script>
 </body>
