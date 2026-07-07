@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Hashi Solver</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20260707-ocr-template" />
 </head>
 <body>
   <main class="app">
@@ -18,7 +18,7 @@
         Screenshot laden
         <input id="imageInput" type="file" accept="image/*" />
       </label>
-      <div class="tip">Screenshot hochladen → Grid wird automatisch neu aufgebaut. OCR nutzt echte Templates aus deinen Screenshots und lernt aus Korrekturen.</div>
+      <div class="tip">Screenshot hochladen → Grid wird automatisch neu aufgebaut. Template-OCR nutzt echte Beispiele aus deinen Screenshots.</div>
     </section>
     <section class="panel boardPanel">
       <div class="canvasWrap"><canvas id="board" width="900" height="900"></canvas></div>
@@ -44,8 +44,10 @@
     <button id="navNext">Next</button>
     <button id="clearBtn" class="danger">Reset</button>
   </nav>
-  <script src="app-main.js"></script>
-  <script src="seed-templates.js"></script>
-  <script src="ocr-v4.js"></script>
+  <script src="app-main.js?v=20260707-ocr-template"></script>
+  <script src="reset-template-cache.js?v=20260707-ocr-template"></script>
+  <script src="seed-templates.js?v=20260707-ocr-template"></script>
+  <script src="ocr-v4.js?v=20260707-ocr-template"></script>
+  <script src="ocr-template-only.js?v=20260707-ocr-template"></script>
 </body>
 </html>
