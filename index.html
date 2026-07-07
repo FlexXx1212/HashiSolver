@@ -18,7 +18,7 @@
         Screenshot laden
         <input id="imageInput" type="file" accept="image/*" />
       </label>
-      <div class="tip">Screenshot hochladen → Grid wird automatisch neu aufgebaut. Zahlen und doppelte Brücken werden aus dem Bild gelesen.</div>
+      <div class="tip">Screenshot hochladen → Grid wird automatisch neu aufgebaut. OCR v2 erkennt Zahlen und Doppelbrücken.</div>
     </section>
     <section class="panel boardPanel">
       <div class="canvasWrap"><canvas id="board" width="900" height="900"></canvas></div>
@@ -45,5 +45,6 @@
     <button id="clearBtn" class="danger">Reset</button>
   </nav>
   <script src="app-main.js"></script>
+  <script src="ocr-v2.js"></script>
 </body>
 </html>
